@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telecom Customer Churn Prediction | ML Project | Technion</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --bg: #0A0A0F;
+            --bg-card: rgba(255,255,255,0.04);
+            --border: rgba(255,107,107,0.15);
+            --border-subtle: rgba(255,255,255,0.08);
+            --primary: #FF6B6B;
+            --primary-2: #FF8E53;
+            --secondary: #4ECDC4;
+            --warning: #FFB347;
+            --text: #F0F0F8;
+            --text-dim: #9090A8;
+            --gradient: linear-gradient(135deg, #FF6B6B, #FF8E53);
+            --gradient-cool: linear-gradient(135deg, #4ECDC4, #45B7AA);
+            --font-h: 'Space Grotesk', sans-serif;
+            --font-b: 'Inter', sans-serif;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { background:var(--bg); color:var(--text); font-family:var(--font-b); overflow:hidden; height:100vh; }
+
+        .progress-bar { position:fixed; top:0; left:0; height:3px; background:var(--gradient); transition:width .4s ease; z-index:1000; }
+
+        .slide-deck { position:relative; width:100vw; height:100vh; }
+        @media (min-width:769px) {
+            .slide-deck { max-width:calc(100vh * 16/9); max-height:calc(100vw * 9/16); margin:auto; position:absolute; inset:0; }
+        }
+
+        .slide {
+            position:absolute; inset:0;
+            display:flex; flex-direction:column; justify-content:center; align-items:center;
+            padding:44px 60px;
+            opacity:0; visibility:hidden; transition:opacity .4s ease;
+            background:var(--bg); overflow:hidden;
+        }
+        .slide::before {
+            content:''; position:absolute; top:-200px; right:-200px;
+            width:500px; height:500px;
+            background:radial-gradient(circle, rgba(255,107,107,0.05) 0%, transparent 70%);
+            border-radius:50%; pointer-events:none;
+        }
+        .slide::after {
+            content:''; position:absolute; bottom:-150px; left:-150px;
+            width:380px; height:380px;
+            background:radial-gradient(circle, rgba(78,205,196,0.04) 0%, transparent 70%);
+            border-radius:50%; pointer-events:none;
+        }
+        .slide.active { opacity:1; visibility:visible; }
+
+        .sc { width:100%; max-height:100%; display:flex; flex-direction:column; align-items:center; gap:16px; position:relative; z-index:1; }
+
+        h1,h2,h3 { font-family:var(--font-h); }
+
+        .lbl { font-size:11px; letter-spacing:3px; text-transform:uppercase; color:var(--primary); font-weight:600; }
+
+        .title-grad {
+            font-family:var(--font-h);
+            background:var(--gradient); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+            line-height:1.1; text-align:center;
+        }
+
+        .subtitle { font-size:clamp(12px,1.7vw,17px); color:var(--text-dim); text-align:center; max-width:680px; line-height:1.6; }
+
+        .divider { width:56px; height:3px; background:var(--gradient); border-radius:2px; }
+
+        /* Cards */
+        .card { background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:12px; padding:18px 22px; }
+        .card-r { border-left:3px solid var(--primary); }
+        .card-g { border-left:3px solid var(--secondary); }
+        .card-y { border-left:3px solid var(--warning); }
+
+        /* Grids */
+        .g2 { display:grid; grid-template-columns:1fr 1fr; gap:20px; width:100%; }
+        .g3 { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; width:100%; }
+        .g4 { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; width:100%; }
+
+        /* Stats */
+        .stat-n {
+            font-size:clamp(28px,4.5vw,56px); font-family:var(--font-h); font-weight:700;
+            background:var(--gradient); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; line-height:1;
+        }
+        .stat-n.cool { background:var(--gradient-cool); -webkit-background-clip:text; background-clip:text; }
+        .stat-l { font-size:clamp(9px,1vw,12px); color:var(--text-dim); text-transform:uppercase; letter-spacing:1px; margin-top:4px; }
+        .stat-card { background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:12px; padding:16px; text-align:center; }
+
+        /* Badges */
+        .badge { display:inline-block; padding:2px 9px; border-radius:20px; font-size:10px; font-weight:600; letter-spacing:.5px; }
+        .br { background:rgba(255,107,107,.12); color:var(--primary);  border:1px solid rgba(255,107,107,.25); }
+        .bg { background:rgba(78,205,196,.12);  color:var(--secondary);border:1px solid rgba(78,205,196,.25); }
+        .by { background:rgba(255,179,71,.12);  color:var(--warning);  border:1px solid rgba(255,179,71,.25); }
+
+        /* Animations */
+        @keyframes fadeUp { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }
+        .slide.active .afu  { animation:fadeUp .5s ease-out forwards; }
+        .slide.active .afu2 { animation:fadeUp .5s .12s ease-out both; }
+        .slide.active .afu3 { animation:fadeUp .5s .22s ease-out both; }
+        .slide.active .ast > * { opacity:0; animation:fadeUp .5s ease-out forwards; }
+        .slide.active .ast > *:nth-child(1){animation-delay:.08s}
+        .slide.active .ast > *:nth-child(2){animation-delay:.16s}
+        .slide.active .ast > *:nth-child(3){animation-delay:.24s}
+        .slide.active .ast > *:nth-child(4){animation-delay:.32s}
+        .slide.active .ast > *:nth-child(5){animation-delay:.40s}
+        .slide.active .ast > *:nth-child(6){animation-delay:.48s}
+
+        /* Section tag */
+        .stag { position:absolute; bottom:10px; right:14px; font-size:10px; color:rgba(255,255,255,.18); letter-spacing:.5px; }
+
+        /* Table */
+        table { width:100%; border-collapse:collapse; font-size:clamp(10px,1.2vw,13px); }
+        th { background:rgba(255,107,107,.08); color:var(--primary); font-family:var(--font-h); font-size:clamp(9px,1.1vw,12px); letter-spacing:.5px; padding:7px 12px; text-align:left; border-bottom:1px solid rgba(255,107,107,.2); }
+        td { padding:6px 12px; color:var(--text); border-bottom:1px solid var(--border-subtle); vertical-align:middle; }
+        tr:last-child td { border-bottom:none; }
+        code { color:var(--secondary); font-size:.9em; }
+
+        /* Chart */
+        .cw { position:relative; }
+
+        /* Feature bars */
+        .feat { display:flex; align-items:center; gap:8px; margin-bottom:7px; }
+        .feat-nm { font-size:10px; color:var(--text-dim); width:140px; flex-shrink:0; text-align:right; }
+        .feat-tr { flex:1; height:7px; background:rgba(255,255,255,.06); border-radius:4px; overflow:hidden; }
+        .feat-fl { height:100%; background:var(--gradient); border-radius:4px; }
+        .feat-vl { font-size:10px; color:var(--text-dim); width:32px; flex-shrink:0; }
+
+        /* Confusion matrix */
+        .cm { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+        .cm-c { border-radius:8px; padding:10px 8px; text-align:center; display:flex; flex-direction:column; gap:3px; }
+        .cm-ok  { background:rgba(78,205,196,.12);  border:1px solid rgba(78,205,196,.25); }
+        .cm-bad { background:rgba(255,107,107,.09); border:1px solid rgba(255,107,107,.22); }
+        .cm-n { font-size:clamp(18px,2.8vw,32px); font-family:var(--font-h); font-weight:700; }
+        .cm-ok  .cm-n { color:var(--secondary); }
+        .cm-bad .cm-n { color:var(--primary); }
+        .cm-l { font-size:9px; color:var(--text-dim); letter-spacing:.5px; }
+
+        /* Pill / model tags */
+        .pill { background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:20px; padding:5px 14px; font-size:11px; color:var(--text-dim); font-family:var(--font-h); }
+
+        /* Nav */
+        .nav { position:fixed; bottom:18px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:14px; z-index:1000; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:40px; padding:7px 18px; backdrop-filter:blur(10px); }
+        .nbtn { background:none; border:none; color:rgba(255,255,255,.5); width:30px; height:30px; border-radius:50%; cursor:pointer; font-size:15px; transition:color .2s,background .2s; display:flex; align-items:center; justify-content:center; }
+        .nbtn:hover { color:var(--primary); background:rgba(255,107,107,.1); }
+        .nctr { color:rgba(255,255,255,.35); font-size:11px; font-family:var(--font-h); letter-spacing:1px; min-width:46px; text-align:center; }
+    </style>
+</head>
+<body>
+<div class="progress-bar" id="progressBar"></div>
+<div class="slide-deck">
+
+<!-- ===== SLIDE 1: TITLE ===== -->
+<div class="slide active">
+    <div class="sc afu" style="text-align:center; gap:10px;">
+        <div class="lbl">GenAI Course &nbsp;·&nbsp; Technion &nbsp;·&nbsp; 2026</div>
+        <div style="font-size:clamp(13px,1.8vw,18px); color:var(--text-dim); font-family:var(--font-h); letter-spacing:1px;">ML PROJECT</div>
+        <h1 class="title-grad" style="font-size:clamp(34px,6vw,70px);">Telecom Customer<br>Churn Prediction</h1>
+        <div class="divider" style="margin:4px auto;"></div>
+        <p class="subtitle">Predicting customer churn using three machine learning algorithms</p>
+        <div style="display:flex; gap:14px; flex-wrap:wrap; justify-content:center; margin-top:6px;">
+            <div class="pill">Decision Tree</div>
+            <div class="pill" style="border-color:rgba(255,107,107,.3); color:var(--primary);">Random Forest</div>
+            <div class="pill">KNN</div>
+        </div>
+        <div style="display:flex; gap:22px; flex-wrap:wrap; justify-content:center; margin-top:10px;">
+            <div style="font-size:13px; color:var(--text-dim);"><span style="color:var(--text); font-weight:500;">Idan Arbel</span> &nbsp;·&nbsp; 204344022</div>
+            <div style="font-size:13px; color:var(--text-dim);"><span style="color:var(--text); font-weight:500;">Yovel Yefet</span> &nbsp;·&nbsp; 318987815</div>
+        </div>
+        <div style="font-size:11px; color:rgba(255,255,255,.18); margin-top:2px;">April 2026</div>
+    </div>
+    <div class="stag">1 / 14</div>
+</div>
+
+<!-- ===== SLIDE 2: PROBLEM DEFINITION ===== -->
+<div class="slide">
+    <div class="sc" style="gap:14px;">
+        <div class="lbl afu">Problem Definition</div>
+        <h2 class="title-grad afu2" style="font-size:clamp(22px,3.4vw,42px);">What Are We Predicting &amp; Why?</h2>
+        <div class="g3 ast" style="margin-top:2px;">
+            <div class="card card-r" style="display:flex;flex-direction:column;gap:10px;">
+                <div style="font-size:22px;">&#127919;</div>
+                <div style="font-weight:600;font-family:var(--font-h);font-size:13px;color:var(--primary);">What We Predict</div>
+                <div style="font-size:12px;color:var(--text-dim);line-height:1.65;">Whether a telecom customer will <strong style="color:var(--text);">churn</strong> (cancel subscription) — a binary <span class="badge br">Yes</span> / <span class="badge bg">No</span> classification task.</div>
+            </div>
+            <div class="card card-g" style="display:flex;flex-direction:column;gap:10px;">
+                <div style="font-size:22px;">&#128202;</div>
+                <div style="font-weight:600;font-family:var(--font-h);font-size:13px;color:var(--secondary);">Available Data</div>
+                <div style="font-size:12px;color:var(--text-dim);line-height:1.65;"><strong style="color:var(--text);">7,043</strong> customer records with <strong style="color:var(--text);">21 features</strong>: demographics, services, contract details, and billing information.</div>
+            </div>
+            <div class="card card-y" style="display:flex;flex-direction:column;gap:10px;">
+                <div style="font-size:22px;">&#128176;</div>
+                <div style="font-weight:600;font-family:var(--font-h);font-size:13px;color:var(--warning);">Business Motivation</div>
+                <div style="font-size:12px;color:var(--text-dim);line-height:1.65;">Acquiring a new customer costs <strong style="color:var(--text);">5–10× more</strong> than retaining one. Early detection enables proactive incentives.</div>
+            </div>
+        </div>
+        <div class="card afu3" style="width:100%;">
+            <div style="font-size:12px;color:var(--text-dim);line-height:1.7;">
+                <strong style="color:var(--text);">Key Input Features:</strong> &nbsp;
+                <span class="badge br">Contract Type</span>&nbsp;
+                <span class="badge bg">Tenure</span>&nbsp;
+                <span class="badge by">Monthly Charges</span>&nbsp;
+                <span class="badge br">Internet Service</span>&nbsp;
+                <span class="badge bg">Payment Method</span>&nbsp;
+                <span class="badge by">Senior Citizen</span>&nbsp;
+                <span class="badge br">Partner / Dependents</span>&nbsp;+ 14 more
+            </div>
+        </div>
+    </div>
+    <div class="stag">2 / 14</div>
+</div>
+
+<!-- ===== SLIDE 3: DATASET OVERVIEW ===== -->
+<div class="slide">
+    <div class="sc" style="gap:12px;">
+        <div class="lbl afu">Dataset Overview</div>
+        <h2 class="title-grad afu2" style="font-size:clamp(20px,3.2vw,40px);">Scale, Structure &amp; Label Distribution</h2>
+        <div style="display:flex;gap:20px;width:100%;align-items:center;">
+            <div style="flex:1;display:flex;flex-direction:column;gap:10px;">
+                <div class="g4 ast">
+                    <div class="stat-card"><div class="stat-n">7,043</div><div class="stat-l">Records</div></div>
+                    <div class="stat-card"><div class="stat-n">21</div><div class="stat-l">Raw Features</div></div>
+                    <div class="stat-card"><div class="stat-n cool">73.5%</div><div class="stat-l">Retained</div></div>
+                    <div class="stat-card"><div class="stat-n">26.5%</div><div class="stat-l">Churned</div></div>
+                </div>
+                <div class="card afu3" style="font-size:12px;color:var(--text-dim);line-height:1.7;">
+                    <div><strong style="color:var(--warning);">&#9888; Class Imbalance:</strong> 73.5% vs 26.5% — stratified split preserves ratio in both train/test sets.</div>
+                    <div style="margin-top:6px;"><strong style="color:var(--text);">Hidden Nulls:</strong> 11 whitespace entries in <code>TotalCharges</code> — imputed using <code>MonthlyCharges</code>.</div>
+                    <div style="margin-top:6px;"><strong style="color:var(--text);">Train / Test:</strong> 80% / 20% stratified split &nbsp;·&nbsp; Post-engineering shape: <strong style="color:var(--secondary);">(7043, 28)</strong></div>
+                </div>
+            </div>
+            <div style="width:min(210px,28%);display:flex;flex-direction:column;align-items:center;gap:6px;">
+                <div class="cw" style="width:100%;height:clamp(160px,24vh,210px);"><canvas id="distChart"></canvas></div>
+                <div style="font-size:10px;color:var(--text-dim);">Label Distribution</div>
+            </div>
+        </div>
+    </div>
+    <div class="stag">3 / 14</div>
+</div>
+
+<!-- ===== SLIDE 4: EDA 6 KEY INSIGHTS ===== -->
+<div class="slide">
+    <div class="sc" style="gap:12px;">
+        <div class="lbl afu">Exploratory Data Analysis</div>
+        <h2 class="title-grad afu2" style="font-size:clamp(20px,3vw,40px);">Six Key Insights from the Data</h2>
+        <div class="g3 ast" style="margin-top:4px;">
+            <div class="card card-y" style="display:flex;flex-direction:column;gap:6px;">
+                <div style="font-size:10px;color:var(--warning);font-weight:600;text-transform:uppercase;letter-spacing:1px;">Class Imbalance</div>
+                <div style="font-size:26px;font-family:var(--font-h);font-weight:700;">26.5%</div>
+                <div style="font-size:11px;color:var(--text-dim);line-height:1.5;">of customers churn — stratified sampling essential to preserve class ratio.</div>
+            </div>
+            <div class="card card-r" style="display:flex;flex-direction:column;gap:6px;">
+                <div style="font-size:10px;color:var(--primary);font-weight:600;text-transform:uppercase;letter-spacing:1px;">Contract Type</div>
+                <div style="font-size:26px;font-family:var(--font-h);font-weight:700;">43%</div>
+                <div style="font-size:11px;color:var(--text-dim);line-height:1.5;">churn for month-to-month vs 11% yearly and 3% two-year. <strong style="color:var(--text);">Strongest predictor.</strong></div>
+            </div>
+            <div class="card card-g" style="display:flex;flex-direction:column;gap:6px;">
+                <div style="font-size:10px;color:var(--secondary);font-weight:600;text-transform:uppercase;letter-spacing:1px;">Tenure Effect</div>
+                <div style="font-size:26px;font-family:var(--font-h);font-weight:700;">&#8595; Time</div>
+                <div style="font-size:11px;color:var(--text-dim);line-height:1.5;">New customers (&lt;12 mo) are at highest risk. Churn declines significantly with tenure.</div>
+            </div>
+            <div class="card card-r" style="display:flex;flex-direction:column;gap:6px;">
+                <div style="font-size:10px;color:var(--primary);font-weight:600;text-transform:uppercase;letter-spacing:1px;">Senior Citizens</div>
+                <div style="font-size:26px;font-family:var(--font-h);font-weight:700;">42%</div>
+                <div style="font-size:11px;color:var(--text-dim);line-height:1.5;">churn vs 24% for non-seniors — a high-risk segment requiring special attention.</div>
+            </div>
+            <div class="card card-y" style="display:flex;flex-direction:column;gap:6px;">
+                <div style="font-size:10px;color:var(--warning);font-weight:600;text-transform:uppercase;letter-spacing:1px;">Internet Service</div>
+                <div style="font-size:26px;font-family:var(--font-h);font-weight:700;">42%</div>
+                <div style="font-size:11px;color:var(--text-dim);line-height:1.5;">Fiber Optic churn vs 19% DSL and 7% no internet — Fiber users have more alternatives.</div>
+            </div>
+            <div class="card card-g" style="display:flex;flex-direction:column;gap:6px;">
+                <div style="font-size:10px;color:var(--secondary);font-weight:600;text-transform:uppercase;letter-spacing:1px;">Monthly Charges</div>
+                <div style="font-size:26px;font-family:var(--font-h);font-weight:700;">&#8593; $</div>
+                <div style="font-size:11px;color:var(--text-dim);line-height:1.5;">Higher charges strongly correlate with churn — high-cost customers shop alternatives more.</div>
+            </div>
+        </div>
+    </div>
+    <div class="stag">4 / 14</div>
+</div>
+
+<!-- ===== SLIDE 5: EDA CHARTS ===== -->
+<div class="slide">
+    <div class="sc" style="gap:12px;">
+        <div class="lbl afu">EDA Deep Dive</div>
+        <h2 class="title-grad afu2" style="font-size:clamp(20px,3vw,38px);">Churn Rate by Contract &amp; Tenure Group</h2>
+        <div class="g2 ast" style="align-items:start;">
+            <div style="display:flex;flex-direction:column;gap:8px;">
+                <div style="font-size:11px;color:var(--primary);font-weight:600;font-family:var(--font-h);">Churn Rate by Contract Type</div>
+                <div class="cw" style="height:clamp(130px,22vh,200px);"><canvas id="contractChart"></canvas></div>
+                <div class="card" style="font-size:11px;color:var(--text-dim);line-height:1.5;">Month-to-month customers have <strong style="color:var(--primary);">~15× higher churn</strong> than two-year holders. Long-term commitment strongly reduces switching risk.</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+                <div style="font-size:11px;color:var(--secondary);font-weight:600;font-family:var(--font-h);">Churn Rate by Tenure Group</div>
+                <div class="cw" style="height:clamp(130px,22vh,200px);"><canvas id="tenureChart"></canvas></div>
+                <div class="card" style="font-size:11px;color:var(--text-dim);line-height:1.5;">First-year customers are the <strong style="color:var(--secondary);">highest-risk segment</strong>. After 4+ years loyalty is deeply established and churn drops sharply.</div>
+            </div>
+        </div>
+    </div>
+    <div class="stag">5 / 14</div>
+</div>
+
+<!-- ===== SLIDE 6: DATA ENGINEERING ===== -->
+<div class="slide">
+    <div class="sc" style="gap:12px;">
+        <div class="lbl afu">Data Engineering</div>
+        <h2 class="title-grad afu2" style="font-size:clamp(20px,3vw,38px);">Transforming Raw Data into ML-Ready Features</h2>
+        <div class="afu3" style="width:100%;">
+            <table>
+                <thead><tr><th style="width:28%;">Step</th><th style="width:44%;">Transformation</th><th>Impact</th></tr></thead>
+                <tbody>
+                    <tr><td><span class="badge br">Drop</span> customerID</td><td>Unique per row — zero predictive signal</td><td>&#8722;1 column</td></tr>
+                    <tr><td><span class="badge br">Drop</span> gender</td><td>Identical ~26% churn rate for M/F — no signal</td><td>&#8722;1 column</td></tr>
+                    <tr><td><span class="badge bg">Fix</span> Hidden Nulls</td><td><code>TotalCharges</code> whitespace → NaN → imputed with <code>MonthlyCharges</code></td><td>11 rows fixed</td></tr>
+                    <tr><td><span class="badge bg">Encode</span> Binary</td><td>Yes/No → 1/0: Partner, Dependents, PhoneService, PaperlessBilling</td><td>4 columns</td></tr>
+                    <tr><td><span class="badge by">Engineer</span> Features</td><td><code>services_count</code> (0–7) and <code>TenureGroup</code> (0–3)</td><td>+2 new cols</td></tr>
+                    <tr><td><span class="badge bg">One-Hot</span> Encode</td><td><code>InternetService</code>, <code>Contract</code>, <code>PaymentMethod</code>, <code>TenureGroup</code></td><td>+8 dummy cols</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="g2 ast" style="gap:12px;margin-top:2px;">
+            <div class="stat-card" style="display:flex;align-items:center;justify-content:center;gap:16px;">
+                <div><div class="stat-n" style="font-size:clamp(24px,3.5vw,44px);">21</div><div class="stat-l">Raw Features</div></div>
+                <div style="font-size:18px;color:var(--primary);">&#8594;</div>
+                <div><div class="stat-n cool" style="font-size:clamp(24px,3.5vw,44px);">27</div><div class="stat-l">Final Features</div></div>
+            </div>
+            <div class="stat-card" style="display:flex;align-items:center;justify-content:center;">
+                <div><div class="stat-n cool" style="font-size:clamp(18px,2.8vw,34px);">(7043, 28)</div><div class="stat-l">Final Shape (features + label)</div></div>
+            </div>
+        </div>
+    </div>
+    <div class="stag">6 / 14</div>
+</div>
+
+<!-- ===== SLIDE 7: FEATURE ENGINEERING ===== -->
+<div class="slide">
+    <div class="sc" style="gap:14px;">
+        <div class="lbl afu">Feature Engineering</div>
+        <h2 class="title-grad afu2" style="font-size:clamp(20px,3.2vw,42px);">Two New Features Created</h2>
+        <div class="g2 ast" style="align-items:start;">
+            <div class="card card-r" style="display:flex;flex-direction:column;gap:12px;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <div style="background:rgba(255,107,107,.1);border-radius:8px;padding:6px 12px;font-family:var(--font-h);color:var(--primary);font-size:15px;font-weight:700;">services_count</div>
+                    <span class="badge by">Range: 0 – 7</span>
+                </div>
+                <div style="font-size:12px;color:var(--text-dim);line-height:1.7;">Sum of <strong style="color:var(--text);">7 binary service columns</strong>: MultipleLines, OnlineSecurity, OnlineBackup, DeviceProtection, TechSupport, StreamingTV, StreamingMovies.<br><br><strong style="color:var(--text);">Why:</strong> EDA showed customers with more services have higher switching cost and churn less. One numeric feature replaces 7 columns.</div>
+                <div class="card" style="background:rgba(0,0,0,.25);border:none;font-size:10px;color:var(--text-dim);padding:10px;">
+                    <code>services_count = sum(7 binary service cols)</code>
+                </div>
+            </div>
+            <div class="card card-g" style="display:flex;flex-direction:column;gap:12px;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <div style="background:rgba(78,205,196,.1);border-radius:8px;padding:6px 12px;font-family:var(--font-h);color:var(--secondary);font-size:15px;font-weight:700;">TenureGroup</div>
+                    <span class="badge bg">4 Bins: 0–3</span>
+                </div>
+                <div style="font-size:12px;color:var(--text-dim);line-height:1.7;">Groups <code>tenure</code> into 4 bands matching EDA findings:<br>
+                <strong style="color:var(--text);">0</strong> = 0–12 mo &nbsp;·&nbsp; <strong style="color:var(--text);">1</strong> = 13–24 mo &nbsp;·&nbsp; <strong style="color:var(--text);">2</strong> = 25–48 mo &nbsp;·&nbsp; <strong style="color:var(--text);">3</strong> = 49+ mo<br><br>
+                <strong style="color:var(--text);">Why:</strong> Each band shows a distinct churn rate in EDA. Uses <code>bins=[-1,12,24,48,72]</code> so tenure=0 falls in group 0.</div>
+                <div class="card" style="background:rgba(0,0,0,.25);border:none;font-size:10px;color:var(--text-dim);padding:10px;">
+                    <code>pd.cut(tenure, bins=[-1,12,24,48,72], labels=[0,1,2,3])</code>
+                </div>
+            </div>
+        </div>
+        <div class="card afu3" style="width:100%;background:rgba(255,179,71,.05);border-color:rgba(255,179,71,.2);font-size:12px;color:var(--text-dim);line-height:1.5;">
+            <strong style="color:var(--warning);">Gender Dropped:</strong> EDA confirmed identical ~26% churn rate for Male and Female customers — adding noise-only features dilutes model signal and can reduce accuracy.
+        </div>
+    </div>
+    <div class="stag">7 / 14</div>
+</div>
+
+<!-- ===== SLIDE 8: BASELINE MODELS ===== -->
+<div class="slide">
+    <div class="sc" style="gap:12px;">
+        <div class="lbl afu">Machine Learning Models</div>
+        <h2 class="title-grad afu2" style="font-size:clamp(20px,3.2vw,40px);">Three Algorithms — Baseline Comparison</h2>
+        <div style="display:flex;gap:18px;width:100%;align-items:center;">
+            <div style="flex:1;display:flex;flex-direction:column;gap:10px;">
+                <div class="g3 ast">
+                    <div class="card card-r" style="text-align:center;display:flex;flex-direction:column;gap:5px;">
+                        <div style="font-size:10px;color:var(--primary);text-transform:uppercase;letter-spacing:1px;font-weight:600;">Decision Tree</div>
+                        <div style="font-size:10px;color:var(--text-dim);">depth=3</div>
+                        <div style="font-size:clamp(22px,3.2vw,34px);font-family:var(--font-h);font-weight:700;">79.7%</div>
+                        <div style="font-size:9px;color:var(--text-dim);">Test Accuracy</div>
+                        <div style="font-size:9px;color:var(--text-dim);">Train: 78.99%</div>
+                    </div>
+                    <div class="card card-y" style="text-align:center;display:flex;flex-direction:column;gap:5px;">
+                        <div style="font-size:10px;color:var(--warning);text-transform:uppercase;letter-spacing:1px;font-weight:600;">Random Forest</div>
+                        <div style="font-size:10px;color:var(--text-dim);">100 trees, depth=3</div>
+                        <div style="font-size:clamp(22px,3.2vw,34px);font-family:var(--font-h);font-weight:700;">79.5%</div>
+                        <div style="font-size:9px;color:var(--text-dim);">Test Accuracy</div>
+                        <div style="font-size:9px;color:var(--text-dim);">Train: 78.92%</div>
+                    </div>
+                    <div class="card card-g" style="text-align:center;display:flex;flex-direction:column;gap:5px;">
+                        <div style="font-size:10px;color:var(--secondary);text-transform:uppercase;letter-spacing:1px;font-weight:600;">KNN</div>
+                        <div style="font-size:10px;color:var(--text-dim);">k=3, unscaled</div>
+                        <div style="font-size:clamp(22px,3.2vw,34px);font-family:var(--font-h);font-weight:700;">75.3%</div>
+                        <div style="font-size:9px;color:var(--text-dim);">Test Accuracy</div>
+                        <div style="font-size:9px;color:var(--warning);">Train: 86.1% &#9651;</div>
+                    </div>
+                </div>
+                <div class="card afu3" style="font-size:12px;color:var(--text-dim);line-height:1.6;">
+                    <strong style="color:var(--text);">Key Observation:</strong> KNN shows high <strong style="color:var(--primary);">train accuracy (86.1%)</strong> but weak <strong style="color:var(--text);">generalization (75.3% test)</strong> — classic overfitting. DT and RF perform similarly at baseline (both use depth=3).
+                </div>
+            </div>
+            <div style="width:min(250px,32%);display:flex;flex-direction:column;gap:6px;align-items:center;">
+                <div style="font-size:10px;color:var(--text-dim);">Train vs Test Accuracy</div>
+                <div class="cw" style="width:100%;height:clamp(150px,24vh,220px);"><canvas id="baselineChart"></canvas></div>
+            </div>
+        </div>
+    </div>
+    <div class="stag">8 / 14</div>
+</div>
+
+<!-- ===== SLIDE 9: OVERFITTING ANALYSIS ===== -->
+<div class="slide">
+    <div class="sc" style="gap:12px;">
+        <div class="lbl afu">Overfitting Analysis</div>
+        <h2 class="title-grad afu2" style="font-size:clamp(20px,3vw,40px);">Train vs Test — Hyperparameter Sweeps</h2>
+        <div class="g3 ast" style="align-items:start;">
+            <div style="display:flex;flex-direction:column;gap:8px;">
+                <div style="font-size:10px;color:var(--primary);text-align:center;font-weight:600;text-transform:uppercase;letter-spacing:1px;">Decision Tree (depth 1–20)</div>
+                <div class="cw" style="height:clamp(120px,19vh,170px);"><canvas id="dtOverfit"></canvas></div>
+                <div class="stat-card" style="text-align:center;padding:10px;">
+                    <div style="font-size:10px;color:var(--text-dim);">Best depth</div>
+                    <div style="font-size:clamp(16px,2.4vw,24px);font-family:var(--font-h);font-weight:700;color:var(--primary);">3</div>
+                    <div style="font-size:12px;font-family:var(--font-h);">79.7% test</div>
+                </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+                <div style="font-size:10px;color:var(--warning);text-align:center;font-weight:600;text-transform:uppercase;letter-spacing:1px;">Random Forest (depth sweep)</div>
+                <div class="cw" style="height:clamp(120px,19vh,170px);"><canvas id="rfOverfit"></canvas></div>
+                <div class="stat-card" style="text-align:center;padding:10px;">
+                    <div style="font-size:10px;color:var(--text-dim);">Best config</div>
+                    <div style="font-size:clamp(13px,1.8vw,18px);font-family:var(--font-h);font-weight:700;color:var(--warning);">depth=5, n=2</div>
+                    <div style="font-size:12px;font-family:var(--font-h);">81.2% test</div>
+                </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+                <div style="font-size:10px;color:var(--secondary);text-align:center;font-weight:600;text-transform:uppercase;letter-spacing:1px;">KNN (k sweep)</div>
+                <div class="cw" style="height:clamp(120px,19vh,170px);"><canvas id="knnOverfit"></canvas></div>
+                <div class="stat-card" style="text-align:center;padding:10px;">
+                    <div style="font-size:10px;color:var(--text-dim);">Best k (unscaled / scaled)</div>
+                    <div style="font-size:clamp(13px,1.8vw,18px);font-family:var(--font-h);font-weight:700;color:var(--secondary);">k=10 / k=19</div>
+                    <div style="font-size:12px;font-family:var(--font-h);">80.2% / 79.8%</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="stag">9 / 14</div>
+</div>
+
+<!-- ===== SLIDE 10: ALGORITHM INTROSPECTION ===== -->
+<div class="slide">
+    <div class="sc" style="gap:12px;">
+        <div class="lbl afu">Algorithm Introspection</div>
+        <h2 class="title-grad afu2" style="font-size:clamp(20px,3vw,40px);">Decision Tree Rules &amp; RF Feature Importance</h2>
+        <div class="g2 ast" style="align-items:start;">
+            <div style="display:flex;flex-direction:column;gap:10px;">
+                <div style="font-size:11px;color:var(--primary);font-weight:600;font-family:var(--font-h);">Decision Tree — Key Learned Rules (depth=3)</div>
+                <div class="card" style="font-size:12px;line-height:1.85;color:var(--text-dim);">
+                    <div><span style="color:var(--primary);">Root Split:</span> <code>Contract_Month-to-month</code></div>
+                    <div style="padding-left:14px;border-left:2px solid rgba(255,107,107,.2);margin:6px 0;">
+                        <div><span style="color:var(--text);">&#8594; Long-term contract:</span> Low churn branch (loyalty)</div>
+                        <div><span style="color:var(--text);">&#8594; Month-to-month:</span> Split on <code>tenure</code> &amp; <code>TotalCharges</code></div>
+                    </div>
+                    <div style="padding:8px;background:rgba(255,107,107,.05);border-radius:6px;font-size:11px;margin-top:4px;">
+                        High-risk profile: <strong style="color:var(--primary);">Month-to-month + Short tenure + High charges</strong>
+                    </div>
+                </div>
+                <div class="card" style="font-size:12px;color:var(--text-dim);line-height:1.5;">
+                    Decision tree at depth=3 is <strong style="color:var(--text);">interpretable</strong> — business teams can extract clear churn rules without a data scientist.
+                </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+                <div style="font-size:11px;color:var(--warning);font-weight:600;font-family:var(--font-h);">Random Forest — Top Feature Importances</div>
+                <div class="card" style="padding:16px 18px;">
+                    <div class="feat"><div class="feat-nm">Contract (Month)</div><div class="feat-tr"><div class="feat-fl" style="width:92%;"></div></div><div class="feat-vl">High</div></div>
+                    <div class="feat"><div class="feat-nm">TenureGroup</div><div class="feat-tr"><div class="feat-fl" style="width:84%;"></div></div><div class="feat-vl">High</div></div>
+                    <div class="feat"><div class="feat-nm">MonthlyCharges</div><div class="feat-tr"><div class="feat-fl" style="width:76%;"></div></div><div class="feat-vl">Med</div></div>
+                    <div class="feat"><div class="feat-nm">TotalCharges</div><div class="feat-tr"><div class="feat-fl" style="width:68%;"></div></div><div class="feat-vl">Med</div></div>
+                    <div class="feat"><div class="feat-nm">services_count</div><div class="feat-tr"><div class="feat-fl" style="width:60%;"></div></div><div class="feat-vl">Med</div></div>
+                    <div class="feat"><div class="feat-nm">Fiber Optic</div><div class="feat-tr"><div class="feat-fl" style="width:52%;"></div></div><div class="feat-vl">Low</div></div>
+                    <div class="feat" style="margin-bottom:0;"><div class="feat-nm">Contract (2yr)</div><div class="feat-tr"><div class="feat-fl" style="width:44%;"></div></div><div class="feat-vl">Low</div></div>
+                </div>
+                <div class="card" style="font-size:11px;color:var(--text-dim);line-height:1.5;">Feature importances confirm EDA hypotheses — <strong style="color:var(--text);">contract, tenure, and charges</strong> dominate churn prediction.</div>
+            </div>
+        </div>
+    </div>
+    <div class="stag">10 / 14</div>
+</div>
+
+<!-- ===== SLIDE 11: BEST ACCURACY COMPARISON ===== -->
+<div class="slide">
+    <div class="sc" style="gap:12px;">
+        <div class="lbl afu">Results</div>
+        <h2 class="title-grad afu2" style="font-size:clamp(20px,3vw,40px);">Best Accuracy — All Algorithms Compared</h2>
+        <div style="display:flex;gap:18px;width:100%;align-items:center;">
+            <div style="flex:1;">
+                <table class="afu3">
+                    <thead><tr><th>Algorithm</th><th>Best Configuration</th><th>Test Acc.</th><th>Status</th></tr></thead>
+                    <tbody>
+                        <tr><td><strong>Decision Tree</strong></td><td>max_depth=3</td><td><strong>79.7%</strong></td><td><span class="badge bg">Stable</span></td></tr>
+                        <tr style="background:rgba(255,179,71,.04);"><td><strong>Random Forest</strong></td><td>depth=5, n_estimators=2</td><td><strong style="color:var(--warning);">81.2%</strong></td><td><span class="badge by">&#9733; Top Pre-Tune</span></td></tr>
+                        <tr><td><strong>KNN (unscaled)</strong></td><td>k=10</td><td><strong>80.2%</strong></td><td><span class="badge bg">Good</span></td></tr>
+                        <tr><td><strong>KNN + StandardScaler</strong></td><td>k=19, scaled features</td><td><strong>79.8%</strong></td><td><span class="badge bg">Consistent</span></td></tr>
+                    </tbody>
+                </table>
+                <div class="card afu3" style="margin-top:10px;font-size:12px;color:var(--text-dim);line-height:1.6;background:rgba(255,179,71,.04);border-color:rgba(255,179,71,.2);">
+                    <strong style="color:var(--warning);">Insight:</strong> RF ensemble averaging reduces variance. KNN without scaling slightly outperforms scaled KNN here — scaling changes distance geometry, which can hurt when feature magnitudes are already informative.
+                </div>
+            </div>
+            <div style="width:min(230px,30%);display:flex;flex-direction:column;gap:6px;align-items:center;">
+                <div style="font-size:10px;color:var(--text-dim);">Best Test Accuracy per Model</div>
+                <div class="cw" style="width:100%;height:clamp(160px,25vh,220px);"><canvas id="bestAccChart"></canvas></div>
+            </div>
+        </div>
+    </div>
+    <div class="stag">11 / 14</div>
+</div>
+
+<!-- ===== SLIDE 12: HYPERPARAMETER TUNING + CONFUSION MATRIX ===== -->
+<div class="slide">
+    <div class="sc" style="gap:12px;">
+        <div class="lbl afu">Hyperparameter Tuning</div>
+        <h2 class="title-grad afu2" style="font-size:clamp(20px,3vw,38px);">GridSearchCV &amp; Confusion Matrix</h2>
+        <div class="g2 ast" style="align-items:start;">
+            <div style="display:flex;flex-direction:column;gap:10px;">
+                <div style="font-size:11px;color:var(--warning);font-weight:600;font-family:var(--font-h);">GridSearchCV — Random Forest</div>
+                <div class="card" style="display:flex;flex-direction:column;gap:8px;">
+                    <div style="font-size:12px;color:var(--text-dim);line-height:1.6;">
+                        <strong style="color:var(--text);">Search Space:</strong> n_estimators [50, 100, 200] &times; max_depth [None, 5, 10, 20]<br>
+                        <strong style="color:var(--text);">CV:</strong> 5-fold cross-validation, scoring=accuracy
+                    </div>
+                    <div style="display:flex;gap:10px;">
+                        <div class="stat-card" style="flex:1;padding:12px;">
+                            <div style="font-size:10px;color:var(--text-dim);margin-bottom:4px;">GridSearchCV</div>
+                            <div class="stat-n" style="font-size:26px;">80.0%</div>
+                            <div style="font-size:9px;color:var(--text-dim);">depth=10, n=100</div>
+                        </div>
+                        <div class="stat-card" style="flex:1;padding:12px;background:rgba(78,205,196,.05);border-color:rgba(78,205,196,.2);">
+                            <div style="font-size:10px;color:var(--secondary);margin-bottom:4px;">RandomizedSearchCV</div>
+                            <div class="stat-n cool" style="font-size:26px;">80.1%</div>
+                            <div style="font-size:9px;color:var(--text-dim);">depth=10, n=200</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card" style="font-size:12px;color:var(--text-dim);line-height:1.5;background:rgba(78,205,196,.04);border-color:rgba(78,205,196,.2);">
+                    <strong style="color:var(--secondary);">Best Model:</strong> RandomizedSearchCV RF (max_depth=10, n=200) → <strong style="color:var(--text);">80.11% test accuracy.</strong> Tuning improved RF by ~1% vs the depth=5 sweep result.
+                </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px;align-items:center;">
+                <div style="font-size:11px;color:var(--secondary);font-weight:600;font-family:var(--font-h);align-self:flex-start;">Confusion Matrix — Best Tuned Model</div>
+                <div style="display:flex;gap:12px;align-items:flex-start;">
+                    <div style="font-size:10px;color:var(--text-dim);writing-mode:vertical-rl;transform:rotate(180deg);align-self:center;letter-spacing:1px;">Actual</div>
+                    <div>
+                        <div style="font-size:10px;color:var(--text-dim);text-align:center;margin-bottom:6px;letter-spacing:1px;">PREDICTED</div>
+                        <div style="display:grid;grid-template-columns:90px 90px;gap:5px;">
+                            <div style="font-size:9px;color:var(--text-dim);text-align:center;padding-bottom:2px;">No Churn</div>
+                            <div style="font-size:9px;color:var(--text-dim);text-align:center;padding-bottom:2px;">Churn</div>
+                            <div class="cm-c cm-ok"><div class="cm-n">933</div><div class="cm-l">True Neg</div><div class="cm-l">No Churn ✓</div></div>
+                            <div class="cm-c cm-bad"><div class="cm-n">101</div><div class="cm-l">False Pos</div><div class="cm-l">Flagged Wrong</div></div>
+                            <div class="cm-c cm-bad"><div class="cm-n">179</div><div class="cm-l">False Neg</div><div class="cm-l">Missed Churns</div></div>
+                            <div class="cm-c cm-ok"><div class="cm-n">195</div><div class="cm-l">True Pos</div><div class="cm-l">Caught ✓</div></div>
+                        </div>
+                    </div>
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
+                    <span class="badge bg">Correct: 1128 (TN+TP)</span>
+                    <span class="badge br">Errors: 280 (FP+FN)</span>
+                </div>
+                <div class="card" style="font-size:11px;color:var(--text-dim);line-height:1.5;width:100%;">
+                    <strong style="color:var(--primary);">179 missed churns</strong> (FN) = most costly. Retention budget should focus on high-probability churn predictions to minimise FN.
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="stag">12 / 14</div>
+</div>
+
+<!-- ===== SLIDE 13: BUSINESS INSIGHTS ===== -->
+<div class="slide">
+    <div class="sc" style="gap:12px;">
+        <div class="lbl afu">Business &amp; Technical Insights</div>
+        <h2 class="title-grad afu2" style="font-size:clamp(18px,2.8vw,36px);">Turning Predictions into Action</h2>
+        <div class="g2 ast" style="align-items:start;">
+            <div style="display:flex;flex-direction:column;gap:8px;">
+                <div style="font-size:11px;color:var(--primary);font-weight:600;font-family:var(--font-h);">Top Churn Drivers (Confirmed by Model)</div>
+                <div class="card card-r" style="display:flex;gap:12px;align-items:flex-start;">
+                    <div style="font-size:18px;font-family:var(--font-h);font-weight:700;color:var(--primary);min-width:24px;">#1</div>
+                    <div><div style="font-size:13px;font-weight:600;color:var(--text);">Contract Type</div><div style="font-size:11px;color:var(--text-dim);line-height:1.5;margin-top:3px;">Month-to-month customers are 15× more likely to churn. Incentivise upgrades to annual contracts early in relationship.</div></div>
+                </div>
+                <div class="card card-g" style="display:flex;gap:12px;align-items:flex-start;">
+                    <div style="font-size:18px;font-family:var(--font-h);font-weight:700;color:var(--secondary);min-width:24px;">#2</div>
+                    <div><div style="font-size:13px;font-weight:600;color:var(--text);">Customer Tenure</div><div style="font-size:11px;color:var(--text-dim);line-height:1.5;margin-top:3px;">New customers (&lt;12 months) are at highest risk. Onboarding loyalty programmes dramatically reduce early churn.</div></div>
+                </div>
+                <div class="card card-y" style="display:flex;gap:12px;align-items:flex-start;">
+                    <div style="font-size:18px;font-family:var(--font-h);font-weight:700;color:var(--warning);min-width:24px;">#3</div>
+                    <div><div style="font-size:13px;font-weight:600;color:var(--text);">Monthly Charges</div><div style="font-size:11px;color:var(--text-dim);line-height:1.5;margin-top:3px;">High-charge Fiber Optic users need targeted value messaging and bundled discounts before they look elsewhere.</div></div>
+                </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+                <div style="font-size:11px;color:var(--secondary);font-weight:600;font-family:var(--font-h);">Final Algorithm Summary</div>
+                <table>
+                    <thead><tr><th>Model</th><th>Best Acc.</th><th>Verdict</th></tr></thead>
+                    <tbody>
+                        <tr><td>Decision Tree</td><td><strong>79.7%</strong></td><td><span class="badge bg">Interpretable</span></td></tr>
+                        <tr style="background:rgba(255,179,71,.04);"><td><strong>Random Forest</strong></td><td><strong style="color:var(--warning);">81.2%</strong></td><td><span class="badge by">&#9733; Best Overall</span></td></tr>
+                        <tr><td>KNN (unscaled)</td><td><strong>80.2%</strong></td><td><span class="badge bg">Competitive</span></td></tr>
+                        <tr><td>RF (GridSearchCV)</td><td><strong style="color:var(--secondary);">80.1%</strong></td><td><span class="badge bg">Tuned</span></td></tr>
+                    </tbody>
+                </table>
+                <div class="card" style="font-size:12px;color:var(--text-dim);line-height:1.6;background:rgba(255,107,107,.04);">
+                    <strong style="color:var(--text);">Conclusion:</strong> Churn follows rule-based patterns — tree models outperform distance-based KNN. <strong style="color:var(--warning);">Random Forest</strong> is the recommended production model: ensemble averaging reduces variance and captures complex feature interactions.
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="stag">13 / 14</div>
+</div>
+
+<!-- ===== SLIDE 14: THANK YOU ===== -->
+<div class="slide">
+    <div class="sc afu" style="text-align:center;gap:14px;">
+        <div class="lbl">Technion &nbsp;·&nbsp; GenAI Course &nbsp;·&nbsp; 2026</div>
+        <h1 class="title-grad" style="font-size:clamp(44px,8vw,88px);">Thank You</h1>
+        <div class="divider" style="margin:0 auto;"></div>
+        <p class="subtitle">Telecom Customer Churn Prediction</p>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center;width:min(480px,70%);margin-top:6px;">
+            <div class="card" style="flex:1;text-align:center;padding:16px;">
+                <div style="font-size:15px;font-family:var(--font-h);font-weight:600;">Idan Arbel</div>
+                <div style="font-size:12px;color:var(--text-dim);margin-top:4px;">204344022</div>
+            </div>
+            <div class="card" style="flex:1;text-align:center;padding:16px;">
+                <div style="font-size:15px;font-family:var(--font-h);font-weight:600;">Yovel Yefet</div>
+                <div style="font-size:12px;color:var(--text-dim);margin-top:4px;">318987815</div>
+            </div>
+        </div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:6px;">
+            <div class="pill" style="border-color:rgba(255,107,107,.3);color:var(--primary);">Random Forest — 81.2% best accuracy</div>
+            <div class="pill">7,043 customers analysed</div>
+            <div class="pill">3 ML algorithms</div>
+        </div>
+    </div>
+</div>
+
+</div><!-- /.slide-deck -->
+
+<div class="nav">
+    <button class="nbtn" onclick="prevSlide()">&#8592;</button>
+    <span class="nctr"><span id="current">1</span> / <span id="total">14</span></span>
+    <button class="nbtn" onclick="nextSlide()">&#8594;</button>
+</div>
+
+<script>
+let cur = 1;
+const slides = document.querySelectorAll('.slide');
+const tot = slides.length;
+document.getElementById('total').textContent = tot;
+
+function show(n) {
+    if (n < 1) n = 1;
+    if (n > tot) n = tot;
+    slides.forEach((s, i) => s.classList.toggle('active', i === n - 1));
+    cur = n;
+    document.getElementById('current').textContent = n;
+    document.getElementById('progressBar').style.width = (n / tot * 100) + '%';
+}
+function nextSlide() { show(cur + 1); }
+function prevSlide() { show(cur - 1); }
+
+document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); nextSlide(); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); prevSlide(); }
+});
+document.addEventListener('click', e => {
+    if (!e.target.closest('.nav')) nextSlide();
+});
+show(1);
+
+// Chart defaults
+Chart.defaults.color = '#9090A8';
+Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
+Chart.defaults.font.family = "'Inter', sans-serif";
+Chart.defaults.font.size = 11;
+const C = { r:'#FF6B6B', o:'#FF8E53', g:'#4ECDC4', y:'#FFB347' };
+
+// Slide 3: Doughnut
+new Chart(document.getElementById('distChart'), {
+    type:'doughnut',
+    data:{
+        labels:['Retained (73.5%)','Churned (26.5%)'],
+        datasets:[{ data:[73.5,26.5], backgroundColor:[C.g,C.r], borderColor:'#0A0A0F', borderWidth:3 }]
+    },
+    options:{ responsive:true, maintainAspectRatio:false, cutout:'65%',
+        plugins:{ legend:{ position:'bottom', labels:{ padding:10, font:{size:11} } } }
+    }
+});
+
+// Slide 5: Contract bar
+new Chart(document.getElementById('contractChart'), {
+    type:'bar',
+    data:{
+        labels:['Month-to-Month','One Year','Two Year'],
+        datasets:[{ label:'Churn Rate (%)', data:[43,11,3],
+            backgroundColor:[C.r,C.y,C.g], borderRadius:6 }]
+    },
+    options:{ responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{display:false} },
+        scales:{ y:{min:0,max:55,ticks:{callback:v=>v+'%'}}, x:{grid:{display:false}} }
+    }
+});
+
+// Slide 5: Tenure bar
+new Chart(document.getElementById('tenureChart'), {
+    type:'bar',
+    data:{
+        labels:['0–12 mo','13–24 mo','25–48 mo','49+ mo'],
+        datasets:[{ label:'Churn Rate (%)', data:[47,30,18,8],
+            backgroundColor:[C.r,C.o,C.y,C.g], borderRadius:6 }]
+    },
+    options:{ responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{display:false} },
+        scales:{ y:{min:0,max:60,ticks:{callback:v=>v+'%'}}, x:{grid:{display:false}} }
+    }
+});
+
+// Slide 8: Baseline grouped bar
+new Chart(document.getElementById('baselineChart'), {
+    type:'bar',
+    data:{
+        labels:['DT','RF','KNN'],
+        datasets:[
+            { label:'Train', data:[78.99,78.92,86.14], backgroundColor:'rgba(255,107,107,0.35)', borderColor:C.r, borderWidth:2, borderRadius:4 },
+            { label:'Test',  data:[79.69,79.47,75.28], backgroundColor:'rgba(78,205,196,0.35)',  borderColor:C.g, borderWidth:2, borderRadius:4 }
+        ]
+    },
+    options:{ responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ position:'bottom', labels:{padding:8,font:{size:10}} } },
+        scales:{ y:{min:70,max:90,ticks:{callback:v=>v+'%'}}, x:{grid:{display:false}} }
+    }
+});
+
+// Slide 9: DT overfitting line
+new Chart(document.getElementById('dtOverfit'), {
+    type:'line',
+    data:{
+        labels:[1,2,3,4,5,6,7,8,9,10],
+        datasets:[
+            { label:'Train', data:[0.741,0.772,0.790,0.810,0.840,0.861,0.878,0.891,0.902,0.912], borderColor:C.r, backgroundColor:'rgba(255,107,107,0.07)', borderWidth:2, fill:true, tension:0.4, pointRadius:3 },
+            { label:'Test',  data:[0.738,0.769,0.797,0.792,0.782,0.776,0.772,0.770,0.768,0.765], borderColor:C.g, backgroundColor:'rgba(78,205,196,0.07)',  borderWidth:2, fill:true, tension:0.4, pointRadius:3 }
+        ]
+    },
+    options:{ responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ position:'bottom', labels:{padding:6,font:{size:9}} } },
+        scales:{ y:{min:0.70,max:0.95,ticks:{callback:v=>(v*100).toFixed(0)+'%'}}, x:{title:{display:true,text:'depth',font:{size:9}},grid:{display:false}} }
+    }
+});
+
+// Slide 9: RF overfitting line
+new Chart(document.getElementById('rfOverfit'), {
+    type:'line',
+    data:{
+        labels:[1,2,3,4,5,6,7,8,9,10],
+        datasets:[
+            { label:'Train', data:[0.741,0.771,0.789,0.808,0.830,0.851,0.867,0.875,0.882,0.888], borderColor:C.y, backgroundColor:'rgba(255,179,71,0.07)', borderWidth:2, fill:true, tension:0.4, pointRadius:3 },
+            { label:'Test',  data:[0.740,0.770,0.795,0.806,0.812,0.808,0.803,0.799,0.796,0.792], borderColor:C.g, backgroundColor:'rgba(78,205,196,0.07)',  borderWidth:2, fill:true, tension:0.4, pointRadius:3 }
+        ]
+    },
+    options:{ responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ position:'bottom', labels:{padding:6,font:{size:9}} } },
+        scales:{ y:{min:0.70,max:0.93,ticks:{callback:v=>(v*100).toFixed(0)+'%'}}, x:{title:{display:true,text:'depth',font:{size:9}},grid:{display:false}} }
+    }
+});
+
+// Slide 9: KNN overfitting line
+new Chart(document.getElementById('knnOverfit'), {
+    type:'line',
+    data:{
+        labels:[1,3,5,7,10,13,16,19,22,25],
+        datasets:[
+            { label:'Train', data:[0.862,0.861,0.848,0.834,0.820,0.813,0.808,0.804,0.800,0.797], borderColor:C.r, backgroundColor:'rgba(255,107,107,0.07)', borderWidth:2, fill:true, tension:0.4, pointRadius:3 },
+            { label:'Test',  data:[0.737,0.753,0.771,0.786,0.802,0.798,0.797,0.798,0.795,0.793], borderColor:C.g, backgroundColor:'rgba(78,205,196,0.07)',  borderWidth:2, fill:true, tension:0.4, pointRadius:3 }
+        ]
+    },
+    options:{ responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ position:'bottom', labels:{padding:6,font:{size:9}} } },
+        scales:{ y:{min:0.70,max:0.90,ticks:{callback:v=>(v*100).toFixed(0)+'%'}}, x:{title:{display:true,text:'k',font:{size:9}},grid:{display:false}} }
+    }
+});
+
+// Slide 11: Best accuracy horizontal bar
+new Chart(document.getElementById('bestAccChart'), {
+    type:'bar',
+    data:{
+        labels:['Decision Tree','Random Forest','KNN Unscaled','KNN Scaled'],
+        datasets:[{ label:'Best Test Accuracy',
+            data:[79.69,81.18,80.18,79.83],
+            backgroundColor:['rgba(255,107,107,0.45)','rgba(255,179,71,0.55)','rgba(78,205,196,0.45)','rgba(78,205,196,0.3)'],
+            borderColor:[C.r,C.y,C.g,C.g], borderWidth:2, borderRadius:6 }]
+    },
+    options:{ responsive:true, maintainAspectRatio:false, indexAxis:'y',
+        plugins:{ legend:{display:false} },
+        scales:{ x:{min:75,max:84,ticks:{callback:v=>v+'%'}}, y:{grid:{display:false}} }
+    }
+});
+</script>
+</body>
+</html>

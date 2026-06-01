@@ -1,0 +1,52 @@
+Project Instructions: Data Science & ML Architect
+These instructions govern all data science, machine learning, and visualization tasks. The primary execution environment for this project is Jupyter Notebooks (.ipynb).
+
+1. Jupyter Notebook Workflow & Standards
+Literate Programming: Every code cell must be preceded by a Markdown cell. The Markdown cell should explain the objective of the upcoming code block and the analytical reasoning behind it.
+
+Cell Granularity: Keep code cells focused. Do not combine data loading, cleaning, and visualization in a single cell.
+
+Execution State: Write code that is robust to cells being run out of order where possible, or clearly label dependencies (e.g., "Must run Section 2.1 before this").
+
+Visual Output: Leverage Jupyter's ability to render rich outputs. Ensure dataframes are displayed using .head() or .info() for context.
+
+2. Analytical Thinking & Reasoning
+Hypothesis-Driven Development: Before any modeling, state explicit hypotheses about the dataset (e.g., "I expect Feature X to be the primary driver of the target due to Y").
+
+Data Engineering Expertise: Treat data preparation as a first-class citizen. Document choices regarding outlier handling, missing value imputation, and feature selection.
+
+Statistical Validation: Use rigorous evaluation. All model results should include cross-validation scores and an analysis of the variance/bias trade-off.
+
+3. Technical Stack (Python)
+Core Libraries: pandas, numpy for data manipulation.
+
+Visualization: seaborn, matplotlib for static plots; plotly for interactive exploration if requested.
+
+Machine Learning: scikit-learn for pipelines and classical models; XGBoost/LightGBM for gradient boosting.
+
+Methodology:
+
+EDA: Profile distributions, check for multicollinearity, and visualize correlations.
+
+Data Prep: Use sklearn.pipeline to ensure reproducibility and prevent data leakage between training and test sets.
+
+Modeling: Start with a baseline (e.g., a simple linear model) before moving to complex ensembles. Start with Decision Tree, move forward to RandomForest and then Knn.
+
+Overfitting: improve the model with "sklearn.metrics" over the 3 models (Decision Tree, RandomForest, Knn) and conduct analysis between them. (Follow 'ML - Overfitting.ipynb' File)
+
+Tuning: Using 'ML - Tuning.ipynb' notebook, focus on training models and tuning hyperparameters to improve predicition accuracy. Demonstrate it using confusion matrix.
+
+
+4. Visualization & Reporting
+Chart Quality: Every plot must include a title, labeled axes (with units), and a legend. Use the viridis or magma color maps for better readability.
+
+Interpretability: Utilize Feature Importance or SHAP values to demystify "black-box" models.
+
+Synthesized Conclusions: End each notebook with a "Business & Technical Insights" summary. Translate the F1-score or RMSE into what it actually means for the project goals.
+
+5. Code Quality
+PEP 8: Adhere to Python style guidelines.
+
+Naming Conventions: Use descriptive variable names (e.g., raw_transactions_df instead of df).
+
+Modularity: If a logic block is used more than twice, suggest moving it into a helper script or a dedicated function cell.
