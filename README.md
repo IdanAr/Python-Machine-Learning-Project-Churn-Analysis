@@ -216,6 +216,6 @@ Project Link: [https://github.com/idanarbel/Python-Machine-Learning-Project-Chur
 - [Scikit-learn](https://scikit-learn.org/)
 - [Seaborn](https://seaborn.pydata.org/)
 - [MongoDB PyMongo](https://pymongo.readthedocs.io/)
-- [GenAI14 Course](https://www.idc.ac.il/)
+- [GenAI14 Course]([https://www.idc.ac.il](https://cont-edu.technion.ac.il/programs/%d7%94%d7%9b%d7%a9%d7%a8%d7%95%d7%aa-%d7%9c%d7%aa%d7%97%d7%95%d7%9e%d7%99-ai/generative-ai-and-llm-hands-on/)/)
 
 ---
